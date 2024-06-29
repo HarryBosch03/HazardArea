@@ -12,7 +12,7 @@ namespace Runtime.Weapons
 #if UNITY_EDITOR
         public bool forceAim;
 #endif
-        
+
         public float viewportFieldOfView;
         public float aimViewportFieldOfView;
         public AnimationCurve aimCurve = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
@@ -30,7 +30,8 @@ namespace Runtime.Weapons
             animator = GetComponent<Animator>();
             children = GetComponentsInChildren<Transform>();
 
-            viewportCamera = GameObject.FindWithTag("ViewportCamera").GetComponent<Camera>();
+            var viewportCameraGameObject = GameObject.FindWithTag("ViewportCamera");
+            viewportCamera = viewportCameraGameObject ? viewportCameraGameObject.GetComponent<Camera>() : null;
         }
 
         private void OnEnable()

@@ -1,5 +1,6 @@
 using System.Linq;
 using FishNet.Object;
+using Runtime.Player;
 using UnityEngine;
 
 namespace Runtime.Weapons
@@ -22,6 +23,12 @@ namespace Runtime.Weapons
             {
                 if (IsHitValid(hit))
                 {
+                    var health = hit.collider.GetComponentInParent<HealthController>();
+                    if (health != null)
+                    {
+                        health.Damage(args.damage);
+                    }
+                    
                     Debug.DrawLine(transform.position, hit.point, Color.red, 1f);
                     Debug.DrawRay(hit.point, hit.normal * 0.1f, Color.green, 1f);
                     Instantiate(hitFX, hit.point, Quaternion.LookRotation(hit.normal));
@@ -70,6 +77,7 @@ namespace Runtime.Weapons
         [System.Serializable]
         public struct ProjectileSpawnArgs
         {
+            public HealthController.DamageArgs damage;
             public float speed;
             public float lifetime;
         }

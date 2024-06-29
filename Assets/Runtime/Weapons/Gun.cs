@@ -4,6 +4,7 @@ using FishNet.Object.Prediction;
 using FishNet.Transporting;
 using Runtime.Player;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace Runtime.Weapons
 {
@@ -34,13 +35,20 @@ namespace Runtime.Weapons
 
         private void Shoot()
         {
-            if (data.shootTimer < 0 && data.magazine > 0)
+            if (data.shootTimer < 0)
             {
-                data.shootTimer = 60f / firerate;
-                projectilePrefab.Spawn(player.head, player.body.linearVelocity, player.NetworkObject, projectileSpawnArgs);
-                OnShoot?.Invoke();
-                if (flash) flash.Play();
-                data.magazine--;
+                if (data.magazine > 0)
+                {
+                    data.shootTimer = 60f / firerate;
+                    projectilePrefab.Spawn(player.head, player.body.linearVelocity, player.NetworkObject, projectileSpawnArgs);
+                    OnShoot?.Invoke();
+                    if (flash) flash.Play();
+                    data.magazine--;
+                }
+                else
+                {
+                    Reload();
+                }
             }
         }
 
@@ -71,10 +79,7 @@ namespace Runtime.Weapons
 
                 if (player.input.reload.pressedThisTick && data.magazine < magazineSize)
                 {
-                    data.reloading = true;
-                    data.reloadTimer = reloadTime;
-                    data.magazine = 0;
-                    OnReload?.Invoke();
+                    Reload();
                 }
             }
 
@@ -82,7 +87,15 @@ namespace Runtime.Weapons
             data.aimPercent = Mathf.MoveTowards(data.aimPercent, aiming ? 1f : 0f, (float)TimeManager.TickDelta / aimTime);
             data.shootTimer -= Time.fixedDeltaTime;
         }
-        
+
+        private void Reload()
+        {
+            data.reloading = true;
+            data.reloadTimer = reloadTime;
+            data.magazine = 0;
+            OnReload?.Invoke();
+        }
+
         public override void CreateReconcile()
         {
             Reconcile(data);

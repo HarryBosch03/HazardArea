@@ -5421,6 +5421,8 @@ MonoBehaviour:
   _networkObjectCache: {fileID: 8926846406156833925}
   projectilePrefab: {fileID: 8492904161864913581, guid: f05ee5b4d189f0f4e95af10134c7a3e1, type: 3}
   projectileSpawnArgs:
+    damage:
+      damage: 10
     speed: 300
     lifetime: 5
   firerate: 300
