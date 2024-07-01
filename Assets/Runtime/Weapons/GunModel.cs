@@ -15,7 +15,6 @@ namespace Runtime.Weapons
 
         public float viewportFieldOfView;
         public float aimViewportFieldOfView;
-        public AnimationCurve aimCurve = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
 
         private Camera viewportCamera;
         private PlayerController player;
@@ -58,12 +57,12 @@ namespace Runtime.Weapons
         {
             animator.SetBool("Sprinting", player.moveState == PlayerController.MoveState.Sprint);
             animator.SetBool("Moving", player.isMoving);
-            animator.SetLayerWeight(1, gun.aimPercent);
+            animator.SetLayerWeight(1, gun.smoothedAimPercent);
         }
 
         private void LateUpdate()
         {
-            var t = aimCurve.Evaluate(gun.aimPercent);
+            var t = gun.smoothedAimPercent;
             
             #if UNITY_EDITOR
             if (forceAim)
@@ -72,7 +71,7 @@ namespace Runtime.Weapons
             }
             #endif
             
-            if (viewportCamera)
+            if (viewportCamera && player.isFirstPerson)
             {
                 viewportCamera.fieldOfView = Mathf.Lerp(viewportFieldOfView, aimViewportFieldOfView, t);
             }

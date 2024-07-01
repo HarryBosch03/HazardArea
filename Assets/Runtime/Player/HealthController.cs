@@ -38,13 +38,17 @@ namespace Runtime.Player
         [Server]
         public void Damage(DamageArgs args)
         {
+            if (isAlive.Value == false) return;
+            
             currentHealth.Value -= args.damage;
-            if (currentHealth.Value <= 0f)
-            {
-                Die(args);
-            }
             
             NotifyDamage(args);
+            
+            if (currentHealth.Value <= 0f)
+            {
+                currentHealth.Value = 0f;
+                Die(args);
+            }
         }
 
         [Server]

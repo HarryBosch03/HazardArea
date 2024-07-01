@@ -1,12 +1,15 @@
 using FishNet.Object;
-using FishNet.Object.Prediction;
 using Runtime.Player;
 
 namespace Runtime.Weapons
 {
-    public abstract class Weapon<T> : NetworkBehaviour where T : struct, IReconcileData
+    public abstract class Weapon : NetworkBehaviour
     {
         public PlayerController player { get; private set; }
+        public string displayName => name;
+        public abstract string ammoCountText { get; }
+        public abstract bool isReloading { get; }
+        public abstract float reloadPercent { get; }
         
         protected virtual void Awake()
         {

@@ -4,11 +4,10 @@ using FishNet.Object.Prediction;
 using FishNet.Transporting;
 using Runtime.Player;
 using UnityEngine;
-using UnityEngine.Rendering;
 
 namespace Runtime.Weapons
 {
-    public class Gun : Weapon<Gun.ReconciliationData>
+    public class Gun : Weapon
     {
         public Projectile projectilePrefab;
         
@@ -16,6 +15,7 @@ namespace Runtime.Weapons
         public float firerate;
         public bool singleFire;
         public float aimTime;
+        public AnimationCurve aimCurve = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
         public int magazineSize;
         public float reloadTime;
 
@@ -25,8 +25,23 @@ namespace Runtime.Weapons
 
         public event Action OnShoot;
         public event Action OnReload;
+        
+        private float aimPercent;
 
-        public float aimPercent => data.aimPercent;
+        public float smoothedAimPercent => aimCurve.Evaluate(aimPercent);
+        public override string ammoCountText => $"{data.magazine}/{magazineSize}";
+        public override bool isReloading => data.reloading;
+        public override float reloadPercent => 1f - data.reloadTimer / reloadTime;
+
+        public override void OnStartServer()
+        {
+            data.magazine = magazineSize;
+        }
+
+        private void OnEnable()
+        {
+            player.activeWeapon = this;
+        }
         
         protected override void OnTick()
         {
@@ -84,7 +99,7 @@ namespace Runtime.Weapons
             }
 
             var aiming = player.input.aim && player.moveState != PlayerController.MoveState.Sprint && !data.reloading;
-            data.aimPercent = Mathf.MoveTowards(data.aimPercent, aiming ? 1f : 0f, (float)TimeManager.TickDelta / aimTime);
+            aimPercent = Mathf.MoveTowards(aimPercent, aiming ? 1f : 0f, (float)TimeManager.TickDelta / aimTime);
             data.shootTimer -= Time.fixedDeltaTime;
         }
 
@@ -110,7 +125,6 @@ namespace Runtime.Weapons
         public struct ReconciliationData : IReconcileData
         {
             public float shootTimer;
-            public float aimPercent;
             public int magazine;
             public float reloadTimer;
             public bool reloading;

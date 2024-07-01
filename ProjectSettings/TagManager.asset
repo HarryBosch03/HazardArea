@@ -12,8 +12,8 @@ TagManager:
   - Viewport
   - Water
   - UI
-  - 
-  - 
+  - IgnoreDamage
+  - Hurtbox
   - 
   - 
   - 

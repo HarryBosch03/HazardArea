@@ -7,6 +7,9 @@ namespace Runtime.Weapons
 {
     public class Projectile : MonoBehaviour
     {
+        public const int IgnoreDamageLayer = 6;
+        public const int LayerMask = ~(1 << IgnoreDamageLayer);
+        
         public GameObject hitFX;
         
         private Vector3 velocity;
@@ -18,7 +21,7 @@ namespace Runtime.Weapons
         {
             var ray = new Ray(transform.position, velocity.normalized);
 
-            var hits = Physics.RaycastAll(ray, velocity.magnitude * Time.fixedDeltaTime * 1.01f).OrderBy(e => e.distance);
+            var hits = Physics.RaycastAll(ray, velocity.magnitude * Time.fixedDeltaTime * 1.01f, LayerMask).OrderBy(e => e.distance);
             foreach (var hit in hits)
             {
                 if (IsHitValid(hit))

@@ -3,7 +3,7 @@ using FishNet.Managing.Timing;
 using FishNet.Object;
 using FishNet.Object.Prediction;
 using FishNet.Transporting;
-using Runtime.Utility;
+using Runtime.Weapons;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -22,6 +22,7 @@ namespace Runtime.Player
         public float airAccelerationPenalty = 0.8f;
         public float jumpHeight = 0.8f;
         public float cameraHeight = 1.7f;
+        public float cameraPivotDistance = 0.1f;
         public float crouchCameraHeight = 1.2f;
         public float cameraHeightSmoothing = 0.1f;
         public float fieldOfView = 100f;
@@ -68,6 +69,7 @@ namespace Runtime.Player
 
         private static PlayerController firstPersonViewer;
 
+        public Weapon activeWeapon { get; set; }
         public InputData input { get; private set; }
         public Rigidbody body { get; private set; }
         public bool onGround { get; set; }
@@ -180,12 +182,19 @@ namespace Runtime.Player
 
         private void ValidateMoveState(InputData data)
         {
+            if (data.sprint.pressedThisTick) moveState = MoveState.Sprint;
+            if (data.sprint.releasedThisTick && moveState == MoveState.Sprint) moveState = MoveState.Walk;
+            
+            if (data.crouch.pressedThisTick) moveState = MoveState.Crouch;
+            if (data.crouch.releasedThisTick && moveState == MoveState.Crouch) moveState = MoveState.Walk;
+
+            if (data.aim.pressedThisTick && moveState == MoveState.Sprint) moveState = MoveState.Walk;
+            
             var canSprint = this.canSprint && data.movement.y > 0.5f;
             var canCrouch = this.canCrouch && onGround;
 
-            if (data.sprint && canSprint) moveState = MoveState.Sprint;
-            else if (data.crouch && canCrouch) moveState = MoveState.Crouch;
-            else moveState = MoveState.Walk;
+            if (moveState == MoveState.Sprint && !canSprint) moveState = MoveState.Walk;
+            if (moveState == MoveState.Crouch && !canCrouch) moveState = MoveState.Walk;
         }
 
         private void Move(InputData data)
@@ -273,6 +282,8 @@ namespace Runtime.Player
                 velocity = body.linearVelocity,
                 rotation = rotation,
                 lastJumpTime = lastJumpTime,
+                onGround = onGround,
+                moveState = moveState,
             };
             Reconcile(reconciliationData);
         }
@@ -284,6 +295,8 @@ namespace Runtime.Player
             body.linearVelocity = data.velocity;
             rotation = data.rotation;
             lastJumpTime = data.lastJumpTime;
+            onGround = data.onGround;
+            moveState = data.moveState;
         }
 
         private void Update()
@@ -310,11 +323,16 @@ namespace Runtime.Player
             var animationPosition = Vector3.zero;
             var animationRotation = Quaternion.identity;
             GetCameraAnimationPose(ref animationPosition, ref animationRotation);
-            
-            head.localPosition = Vector3.up * smoothedCameraHeight + animationPosition;
-            head.rotation = Quaternion.Euler(-finalRotation.y, finalRotation.x, 0f) * animationRotation;
 
-            mainCamera.fieldOfView = smoothedFieldOfView;
+            var headRotation = Quaternion.Euler(-finalRotation.y, finalRotation.x, 0f) * animationRotation;
+
+            head.position = transform.position + Vector3.up * (smoothedCameraHeight - cameraPivotDistance) + animationPosition + headRotation * Vector3.up * cameraPivotDistance;
+            head.rotation = headRotation;
+
+            if (isFirstPerson)
+            {
+                mainCamera.fieldOfView = smoothedFieldOfView;
+            }
         }
 
         private void GetCameraAnimationPose(ref Vector3 animationPosition, ref Quaternion animationRotation) 
@@ -430,6 +448,8 @@ namespace Runtime.Player
             public Vector3 velocity;
             public Vector2 rotation;
             public float lastJumpTime;
+            public bool onGround;
+            public MoveState moveState;
 
             private uint tick;
             public void Dispose() { }
