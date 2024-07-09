@@ -13,5 +13,7 @@ namespace Runtime.Utility
                 return timeManager ? (float)timeManager.TicksToTime(timeManager.Tick) : 0f;
             }
         }
+        
+        public static float tickDelta => (float)InstanceFinder.TimeManager.TickDelta;
     }
 }

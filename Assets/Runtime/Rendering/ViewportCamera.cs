@@ -1,41 +1,32 @@
-using System;
 using UnityEngine;
-using UnityEngine.Experimental.Rendering;
-using UnityEngine.Rendering.HighDefinition;
 
-[RequireComponent(typeof(Camera))]
-public class ViewportCamera : MonoBehaviour
+namespace Runtime.Rendering
 {
-    private Camera camera;
-    private RenderTexture viewportTexture;
-
-    private void Awake()
+    [RequireComponent(typeof(Camera))]
+    public class ViewportCamera : MonoBehaviour
     {
-        camera = GetComponent<Camera>();
-    }
+        private new Camera camera;
 
-    private void Update()
-    {
-        if (viewportTexture == null || viewportTexture.width != Screen.width || viewportTexture.height != Screen.height)
+        private static ViewportCamera instanceInternal;
+        
+        public static ViewportCamera instance
         {
-            RecreateRenderTexture();
-        }
-    }
-
-    private void RecreateRenderTexture()
-    {
-        if (viewportTexture != null)
-        {
-            viewportTexture.Release();
-            Destroy(viewportTexture);
+            get
+            {
+                if (instanceInternal == null) instanceInternal = FindFirstObjectByType<ViewportCamera>();
+                return instanceInternal;
+            }
         }
 
-        viewportTexture = new RenderTexture(Screen.width, Screen.height, 24, DefaultFormat.HDR);
-        camera.targetTexture = viewportTexture;
-    }
-
-    private void OnGUI()
-    {
-        GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), viewportTexture, ScaleMode.StretchToFill, true);
+        public static float fieldOfView
+        {
+            get => instance.camera.fieldOfView;
+            set => instance.camera.fieldOfView = value;
+        }
+        
+        private void Awake()
+        {
+            camera = GetComponent<Camera>();
+        }
     }
 }

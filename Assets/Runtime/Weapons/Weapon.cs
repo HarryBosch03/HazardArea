@@ -5,7 +5,7 @@ namespace Runtime.Weapons
 {
     public abstract class Weapon : NetworkBehaviour
     {
-        public PlayerController player { get; private set; }
+        public FPSController player { get; private set; }
         public string displayName => name;
         public abstract string ammoCountText { get; }
         public abstract bool isReloading { get; }
@@ -13,7 +13,7 @@ namespace Runtime.Weapons
         
         protected virtual void Awake()
         {
-            player = GetComponentInParent<PlayerController>();
+            player = GetComponentInParent<FPSController>();
         }
 
         public override void OnStartNetwork()

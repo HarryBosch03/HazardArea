@@ -13,20 +13,20 @@ public class WeaponSway : MonoBehaviour
     public Transform pivot;
     public Vector3 pivotOffset;
 
-    private PlayerController player;
+    private FPSController fps;
     private Vector2 rotation;
     private Vector2 velocity;
     private Vector2 lastHeadRotation;
 
     private void Awake()
     {
-        player = GetComponentInParent<PlayerController>();
+        fps = GetComponentInParent<FPSController>();
         gun = GetComponentInParent<Gun>();
     }
 
     private void LateUpdate()
     {
-        var head = player.head;
+        var head = fps.head;
 
         var headRotation = new Vector2(head.eulerAngles.y, -head.eulerAngles.x);
         var headVelocity = diffAngle(headRotation, lastHeadRotation) / Time.deltaTime;

@@ -17,7 +17,7 @@ namespace Runtime.Weapons
         public float aimViewportFieldOfView;
 
         private Camera viewportCamera;
-        private PlayerController player;
+        private FPSController fps;
         private Gun gun;
         private Animator animator;
         private Transform[] children;
@@ -25,7 +25,7 @@ namespace Runtime.Weapons
         private void Awake()
         {
             gun = GetComponentInParent<Gun>();
-            player = GetComponentInParent<PlayerController>();
+            fps = GetComponentInParent<FPSController>();
             animator = GetComponent<Animator>();
             children = GetComponentsInChildren<Transform>();
 
@@ -35,28 +35,28 @@ namespace Runtime.Weapons
 
         private void OnEnable()
         {
-            PlayerController.OnFirstPersonViewChanged += OnFirstPersonViewChanged;
-            gun.OnShoot += OnShoot;
+            FPSController.OnFirstPersonViewChanged += OnFirstPersonViewChanged;
+            gun.OnFire += OnFire;
             gun.OnReload += OnReload;
             
-            SetFirstPersonVisible(player.isFirstPerson);
+            SetFirstPersonVisible(fps.isFirstPerson);
         }
 
         private void OnDisable()
         {
-            PlayerController.OnFirstPersonViewChanged -= OnFirstPersonViewChanged;
-            gun.OnShoot -= OnShoot;
+            FPSController.OnFirstPersonViewChanged -= OnFirstPersonViewChanged;
+            gun.OnFire -= OnFire;
             gun.OnReload -= OnReload;
         }
 
         private void OnReload() { animator.Play("Reload", 0, 0f); }
 
-        private void OnShoot() { animator.Play("Shoot", 0, 0f); }
+        private void OnFire() { animator.Play("Shoot", 0, 0f); }
 
         private void Update()
         {
-            animator.SetBool("Sprinting", player.moveState == PlayerController.MoveState.Sprint);
-            animator.SetBool("Moving", player.isMoving);
+            animator.SetBool("Sprinting", fps.moveState == FPSController.MoveState.Sprint);
+            animator.SetBool("Moving", fps.isMoving);
             animator.SetLayerWeight(1, gun.smoothedAimPercent);
         }
 
@@ -71,16 +71,16 @@ namespace Runtime.Weapons
             }
             #endif
             
-            if (viewportCamera && player.isFirstPerson)
+            if (viewportCamera && fps.isFirstPerson)
             {
                 viewportCamera.fieldOfView = Mathf.Lerp(viewportFieldOfView, aimViewportFieldOfView, t);
             }
         }
 
-        private void OnFirstPersonViewChanged(PlayerController oldViewer, PlayerController newViewer)
+        private void OnFirstPersonViewChanged(FPSController oldViewer, FPSController newViewer)
         {
-            if (newViewer == player) SetFirstPersonVisible(true);
-            if (oldViewer == player) SetFirstPersonVisible(false);
+            if (newViewer == fps) SetFirstPersonVisible(true);
+            if (oldViewer == fps) SetFirstPersonVisible(false);
         }
 
         public void SetFirstPersonVisible(bool visible)

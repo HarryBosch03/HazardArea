@@ -10,16 +10,16 @@ public class WeaponOverlay : MonoBehaviour
     public TMP_Text weaponAmmo;
     public Image reloadProgress;
     
-    private PlayerController player;
+    private FPSController fps;
 
     private void Awake()
     {
-        player = GetComponentInParent<PlayerController>();
+        fps = GetComponentInParent<FPSController>();
     }
 
     private void Update()
     {
-        var weapon = player.activeWeapon;
+        var weapon = fps.activeWeapon;
         if (weapon == null)
         {
             weaponName.text = string.Empty;
