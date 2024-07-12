@@ -1,4 +1,3 @@
-using System;
 using UnityEngine;
 
 namespace Runtime.Player
@@ -10,9 +9,12 @@ namespace Runtime.Player
 
         public Sprite icon { get; private set; }
 
-        private void Awake()
+        private void OnEnable()
         {
-            icon = Resources.Load<Sprite>($"Items/Icons/{name}");
+            if (!Application.isPlaying) return;
+            var path = $"Items/Icons/{name}";
+            icon = Resources.Load<Sprite>(path);
+            if (icon == null) Debug.LogError($"Item {name} could not find icon at \"{path}\"", this);
         }
 
         private void OnValidate()

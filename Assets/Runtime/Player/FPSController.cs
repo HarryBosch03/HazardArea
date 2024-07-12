@@ -2,7 +2,6 @@ using System;
 using FishNet.Object;
 using FishNet.Object.Prediction;
 using FishNet.Transporting;
-using Runtime.UI;
 using Runtime.Utility;
 using Runtime.Weapons;
 using Runtime.World;
@@ -81,6 +80,7 @@ namespace Runtime.Player
         private RaycastHit groundHit;
         private float lastJumpTime;
         private Weapon[] registeredWeapons;
+        private InputData pendingInput;
 
         private static FPSController firstPersonViewer;
 
@@ -88,7 +88,7 @@ namespace Runtime.Player
         public Interactable lookingAt { get; private set; }
         public Vector2 rotation { get; set; }
         public Weapon activeWeapon { get; set; }
-        public InputData input { get; private set; }
+        public InputData tickInput { get; private set; }
         public Rigidbody body { get; private set; }
         public bool onGround { get; set; }
         public bool isMoving { get; set; }
@@ -113,6 +113,7 @@ namespace Runtime.Player
             }
 
             SwitchEquippedWeapons(0);
+            isControlling = true;
         }
 
         private void GetComponents()
@@ -167,14 +168,14 @@ namespace Runtime.Player
         {
             if (IsOwner)
             {
-                Replicate(input);
+                CommitInputs();
+                Replicate(pendingInput);
             }
             else
             {
                 Replicate(default);
             }
-
-
+            
             if (onGround)
             {
                 var speed = Mathf.Sqrt(body.linearVelocity.x * body.linearVelocity.x + body.linearVelocity.z * body.linearVelocity.z);
@@ -187,10 +188,25 @@ namespace Runtime.Player
             }
         }
 
+        private void CommitInputs()
+        {
+            var input = pendingInput;
+            input.jump.CommitValues();
+            input.crouch.CommitValues();
+            input.interact.CommitValues();
+            input.sprint.CommitValues();
+            input.shoot.CommitValues();
+            input.aim.CommitValues();
+            input.reload.CommitValues();
+            input.weapon1.CommitValues();
+            input.weapon2.CommitValues();
+            pendingInput = input;
+        }
+
         [Replicate]
         private void Replicate(InputData data, ReplicateState state = ReplicateState.Invalid, Channel channel = Channel.Unreliable)
         {
-            if (!IsOwner) input = data;
+            tickInput = data;
             
             if (health.isAlive.Value)
             {
@@ -204,13 +220,13 @@ namespace Runtime.Player
 
                 if (currentInteractable == null)
                 {
-                    var ray = new Ray(mainCamera.transform.position, mainCamera.transform.forward);
+                    var ray = new Ray(head.position, head.forward);
                     if (Physics.Raycast(ray, out var hit, interactionDistance))
                     {
                         lookingAt = hit.collider.GetComponentInParent<Interactable>();
                         if (lookingAt != null && lookingAt.CanInteract(this))
                         {
-                            if (input.interact)
+                            if (tickInput.interact)
                             {
                                 currentInteractable = lookingAt;
                                 lookingAt.StartInteract(this);
@@ -224,16 +240,16 @@ namespace Runtime.Player
                 }
                 else
                 {
-                    if (!input.interact || currentInteractable.interactor != this)
+                    if (!tickInput.interact || currentInteractable.interactor != this || !isControlling)
                     {
                         currentInteractable.StopInteract(this);
                         currentInteractable = null;
                     }
-
+                    else
                     {
                         var input = new InputData();
-                        input.SetTick(this.input.GetTick());
-                        this.input = input;
+                        input.SetTick(tickInput.GetTick());
+                        tickInput = input;
                     }
                 }
 
@@ -243,8 +259,8 @@ namespace Runtime.Player
                 Move();
                 Jump();
 
-                if (input.weapon1.pressedThisTick) SwitchEquippedWeapons(0);
-                if (input.weapon2.pressedThisTick) SwitchEquippedWeapons(1);
+                if (tickInput.weapon1.pressedThisTick) SwitchEquippedWeapons(0);
+                if (tickInput.weapon2.pressedThisTick) SwitchEquippedWeapons(1);
             }
             else
             {
@@ -255,7 +271,7 @@ namespace Runtime.Player
 
         private void Jump()
         {
-            if (onGround && input.jump.pressedThisTick)
+            if (onGround && tickInput.jump.pressedThisTick)
             {
                 body.linearVelocity += Vector3.up * Mathf.Sqrt(2f * -Physics.gravity.y * jumpHeight - body.linearVelocity.y);
                 onGround = false;
@@ -271,15 +287,15 @@ namespace Runtime.Player
                 return;
             }
 
-            if (input.sprint.pressedThisTick) moveState = MoveState.Sprint;
-            if (input.sprint.releasedThisTick && moveState == MoveState.Sprint) moveState = MoveState.Walk;
+            if (tickInput.sprint.pressedThisTick) moveState = MoveState.Sprint;
+            if (tickInput.sprint.releasedThisTick && moveState == MoveState.Sprint) moveState = MoveState.Walk;
 
-            if (input.crouch.pressedThisTick) moveState = MoveState.Crouch;
-            if (input.crouch.releasedThisTick && moveState == MoveState.Crouch) moveState = MoveState.Walk;
+            if (tickInput.crouch.pressedThisTick) moveState = MoveState.Crouch;
+            if (tickInput.crouch.releasedThisTick && moveState == MoveState.Crouch) moveState = MoveState.Walk;
 
-            if (input.aim.pressedThisTick && moveState == MoveState.Sprint) moveState = MoveState.Walk;
+            if (tickInput.aim.pressedThisTick && moveState == MoveState.Sprint) moveState = MoveState.Walk;
 
-            var canSprint = this.canSprint && input.movement.y > 0.5f;
+            var canSprint = this.canSprint && tickInput.movement.y > 0.5f;
             var canCrouch = this.canCrouch && onGround;
 
             if (moveState == MoveState.Sprint && !canSprint) moveState = MoveState.Walk;
@@ -297,7 +313,7 @@ namespace Runtime.Player
             var acceleration = walkSpeed / Mathf.Max(accelerationTime, Time.fixedDeltaTime);
             if (!onGround) acceleration *= 1f - airAccelerationPenalty;
 
-            var direction = Vector3.ClampMagnitude(transform.TransformDirection(input.movement.x, 0f, input.movement.y), 1f);
+            var direction = Vector3.ClampMagnitude(transform.TransformDirection(tickInput.movement.x, 0f, tickInput.movement.y), 1f);
             var velocity = body.linearVelocity;
             velocity.y = 0f;
 
@@ -342,21 +358,7 @@ namespace Runtime.Player
 
         private void ResetInputs()
         {
-            var input = this.input;
-
-            input.movement = default;
-            input.jump.Reset();
-            input.crouch.Reset();
-            input.interact.Reset();
-            input.sprint.Reset();
-            input.shoot.Reset();
-            input.aim.Reset();
-            input.reload.Reset();
-            input.weapon1.Reset();
-            input.weapon2.Reset();
-            input.deltaLook = default;
-
-            this.input = input;
+            pendingInput.deltaLook = default;
         }
 
         private void OnPostTick()
@@ -400,7 +402,7 @@ namespace Runtime.Player
             var cameraHeight = isCrouching ? crouchCameraHeight : this.cameraHeight;
             smoothedCameraHeight += (cameraHeight - smoothedCameraHeight) / Mathf.Max(cameraHeightSmoothing, Time.deltaTime) * Time.deltaTime;
 
-            var finalRotation = rotation + input.deltaLook;
+            var finalRotation = rotation + pendingInput.deltaLook;
             finalRotation.y = Mathf.Clamp(rotation.y, -90f, 90f);
 
             var zoom = moveState switch
@@ -444,22 +446,23 @@ namespace Runtime.Player
         private void GetInputs()
         {
             if (!IsOwner) return;
-
-            var input = this.input;
+            if (!isControlling) return;
+            
+            var input = pendingInput;
 
             input.movement = moveAction.ReadValue<Vector2>();
-            input.jump.Update(jumpAction);
-            input.crouch.Update(crouchAction);
-            input.interact.Update(interactAction);
-            input.sprint.Update(sprintAction);
-            input.shoot.Update(shootAction);
-            input.aim.Update(aimAction);
-            input.reload.Update(reloadAction);
-            input.weapon1.Update(weapon1Action);
-            input.weapon2.Update(weapon2Action);
+            input.jump.Update(jumpAction.IsPressed());
+            input.crouch.Update(crouchAction.IsPressed());
+            input.interact.Update(interactAction.IsPressed());
+            input.sprint.Update(sprintAction.IsPressed());
+            input.shoot.Update(shootAction.IsPressed());
+            input.aim.Update(aimAction.IsPressed());
+            input.reload.Update(reloadAction.IsPressed());
+            input.weapon1.Update(weapon1Action.IsPressed());
+            input.weapon2.Update(weapon2Action.IsPressed());
             if (Cursor.lockState == CursorLockMode.Locked) input.deltaLook += Mouse.current.delta.ReadValue() * mouseSensitivity;
 
-            this.input = input;
+            pendingInput = input;
 
             if (Keyboard.current.escapeKey.wasPressedThisFrame)
             {
@@ -537,6 +540,7 @@ namespace Runtime.Player
             if (currentWeapon) currentWeapon.gameObject.SetActive(true);
         }
 
+        [Serializable]
         public struct InputData : IReplicateData
         {
             public Vector2 movement;
@@ -556,26 +560,29 @@ namespace Runtime.Player
             public uint GetTick() => tick;
             public void SetTick(uint value) => tick = value;
 
+            [Serializable]
             public struct Button
             {
-                public bool pressed;
+                public bool nextValue;
+                public bool value;
+                public bool lastValue;
                 public bool pressedThisTick;
                 public bool releasedThisTick;
 
-                public void Update(InputAction action)
+                public void Update(bool value)
                 {
-                    pressed = action.IsPressed();
-                    if (action.WasPressedThisFrame()) pressedThisTick = true;
-                    if (action.WasReleasedThisFrame()) releasedThisTick = true;
+                    nextValue = value;
                 }
 
-                public void Reset()
+                public void CommitValues()
                 {
-                    pressedThisTick = false;
-                    releasedThisTick = false;
+                    lastValue = value;
+                    value = nextValue;
+                    pressedThisTick = value && !lastValue;
+                    releasedThisTick = !value && lastValue;
                 }
 
-                public static implicit operator bool(Button button) => button.pressed || button.pressedThisTick;
+                public static implicit operator bool(Button button) => button.value || button.pressedThisTick;
             }
         }
 

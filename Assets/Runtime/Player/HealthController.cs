@@ -1,6 +1,5 @@
 ﻿using System;
 using FishNet.Object;
-using FishNet.Object.Prediction;
 using FishNet.Object.Synchronizing;
 using FishNet.Transporting;
 using UnityEngine;

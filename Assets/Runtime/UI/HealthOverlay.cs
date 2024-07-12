@@ -1,4 +1,3 @@
-using System;
 using Runtime.Player;
 using TMPro;
 using UnityEngine;

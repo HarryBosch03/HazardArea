@@ -14,17 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_GroupName: Default Local Group
   m_GUID: ce97fc369988c5d4a8c60fea2e7dbd30
-  m_SerializeEntries:
-  - m_GUID: 40f5deb519a0c5743a0a27b09944bba2
-    m_Address: Assets/Scriptables/Rifle Ammo.asset
-    m_ReadOnly: 0
-    m_SerializedLabels: []
-    FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: 868dd64f6dac20f489748208b2755fca
-    m_Address: Assets/Scriptables/Pistol Ammo.asset
-    m_ReadOnly: 0
-    m_SerializedLabels: []
-    FlaggedDuringContentUpdateRestriction: 0
+  m_SerializeEntries: []
   m_ReadOnly: 0
   m_Settings: {fileID: 11400000, guid: 79cd7e812bdd23e48950d8cb1ffee682, type: 2}
   m_SchemaSet:

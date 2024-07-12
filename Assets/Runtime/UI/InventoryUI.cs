@@ -1,8 +1,7 @@
-using System;
 using System.Collections.Generic;
 using Runtime.Player;
-using UnityEditor.Networking.PlayerConnection;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 
 namespace Runtime.UI
@@ -28,6 +27,8 @@ namespace Runtime.UI
             {
                 group.interactable = value;
                 group.blocksRaycasts = value;
+                Cursor.lockState = value ? CursorLockMode.None : CursorLockMode.Locked;
+                player.isControlling = !value;
             }
         }
         
@@ -44,6 +45,11 @@ namespace Runtime.UI
         {
             Refresh();
             inventory.OnInventoryChanged += Refresh;
+            
+            foreach (var cell in cells)
+            {
+                cell.ClickedEvent += OnCellClicked;
+            }
         }
 
         private void Update()
@@ -57,7 +63,7 @@ namespace Runtime.UI
                 enabled = false;
             }
             
-            alpha = Mathf.MoveTowards(alpha, isOpen ? 1f : 0f, Time.deltaTime / Mathf.Min(fadeDuration, Time.deltaTime));
+            alpha = Mathf.MoveTowards(alpha, isOpen ? 1f : 0f, Time.deltaTime / Mathf.Max(fadeDuration, Time.deltaTime));
             group.alpha = fadeCurve.Evaluate(alpha);
         }
 
@@ -67,6 +73,7 @@ namespace Runtime.UI
             {
                 var newCell = Instantiate(cellPrefab, cellParent);
                 newCell.name = $"ItemCell{cells.Count}";
+                newCell.ClickedEvent += OnCellClicked;
                 cells.Add(newCell);
             }
             while (cells.Count > inventory.capacity)
@@ -84,6 +91,19 @@ namespace Runtime.UI
         private void OnDisable()
         {
             inventory.OnInventoryChanged -= Refresh;
+
+            foreach (var cell in cells)
+            {
+                cell.ClickedEvent -= OnCellClicked;
+            }
+        }
+
+        private void OnCellClicked(ItemCellUI cell, PointerEventData args)
+        {
+            if (args.button == PointerEventData.InputButton.Right)
+            {
+                inventory.SplitStack(cells.IndexOf(cell));
+            }
         }
     }
 }

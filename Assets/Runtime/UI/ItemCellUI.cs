@@ -1,17 +1,21 @@
+using System;
 using Runtime.Player;
 using TMPro;
 using UnityEngine;
-using UnityEngine.UI;
+using UnityEngine.EventSystems;
+using Image = UnityEngine.UI.Image;
 
 namespace Runtime.UI
 {
-    public class ItemCellUI : MonoBehaviour
+    public class ItemCellUI : MonoBehaviour, IPointerClickHandler, IPointerDownHandler
     {
         public Image icon;
         public TMP_Text countText;
         
         private Sprite missingSprite;
         private ItemStack privateStack;
+
+        public event Action<ItemCellUI, PointerEventData> ClickedEvent;
         
         public ItemStack stack
         {
@@ -37,5 +41,13 @@ namespace Runtime.UI
         {
             missingSprite = icon.sprite;
         }
+
+
+        public void OnPointerClick(PointerEventData eventData)
+        {
+            ClickedEvent?.Invoke(this, eventData);
+        }
+
+        public void OnPointerDown(PointerEventData eventData) {  }
     }
 }

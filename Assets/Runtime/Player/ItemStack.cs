@@ -1,5 +1,3 @@
-using UnityEngine;
-
 namespace Runtime.Player
 {
     [System.Serializable]
