@@ -20,7 +20,6 @@ namespace Runtime.Weapons
         public AnimationCurve aimCurve = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
         public int magazineSize;
         public float reloadTime;
-        public ItemType ammoUsed;
         public float equipTime;
         public float aimFieldOfView = 60f;
 
@@ -29,7 +28,6 @@ namespace Runtime.Weapons
         public float recoilDecay;
 
         public ParticleSystem flash;
-        public PlayerInventory inventory;
 
         public ReconciliationData data;
 
@@ -37,35 +35,17 @@ namespace Runtime.Weapons
         public event Action OnReload;
 
         private float aimPercent;
-        private int ammoInInventory;
 
         public float smoothedAimPercent => aimCurve.Evaluate(aimPercent);
-        public override string ammoCountText => $"{data.magazine}/{(ammoInInventory >= 0 ? ammoInInventory : "\u221e")}";
+        public override string ammoCountText => $"{data.magazine}/{data.reserve}";
         public override bool isReloading => data.reloading;
         public override float reloadPercent => 1f - data.reloadTimer / reloadTime;
-
-        protected override void Awake()
-        {
-            base.Awake();
-            inventory = player.GetComponent<PlayerInventory>();
-        }
 
         public override void OnStartNetwork()
         {
             base.OnStartNetwork();
             data.magazine = magazineSize;
         }
-
-        private void OnEnable()
-        {
-            player.activeWeapon = this;
-            if (inventory) inventory.OnInventoryChanged += RecountAmmo;
-            RecountAmmo();
-        }
-
-        private void OnDisable() { if (inventory) inventory.OnInventoryChanged -= RecountAmmo; }
-
-        private void RecountAmmo() { ammoInInventory = inventory && ammoUsed ? inventory.Count(ammoUsed) : -1; }
 
         protected override void OnTick() { Replicate(default); }
 
@@ -109,15 +89,9 @@ namespace Runtime.Weapons
                     if (data.reloadTimer <= 0f)
                     {
                         data.reloading = false;
-                        if (inventory != null && ammoUsed != null)
-                        {
-                            inventory.Consume(ammoUsed, magazineSize, out var consumed);
-                            data.magazine = consumed;
-                        }
-                        else
-                        {
-                            data.magazine = magazineSize;
-                        }
+                        var consumed = Mathf.Min(data.reserve, magazineSize);
+                        data.magazine += consumed;
+                        data.reserve -= consumed;
                     }
                 }
                 else
@@ -150,17 +124,12 @@ namespace Runtime.Weapons
 
         private void Reload()
         {
-            RecountAmmo();
             if (data.magazine == magazineSize) return;
-            if (ammoInInventory == 0) return;
+            if (data.reserve == 0) return;
             
             data.reloading = true;
             data.reloadTimer = reloadTime;
-            if (IsServerInitialized)
-            {
-                var stack = new ItemStack(ammoUsed, data.magazine);
-                inventory.AddToInventory(ref stack);
-            }
+            data.reserve += data.magazine;
             data.magazine = 0;
             OnReload?.Invoke();
         }
@@ -175,6 +144,7 @@ namespace Runtime.Weapons
             public float shootTimer;
             public int lastDisabledTick;
             public int magazine;
+            public int reserve;
             public float reloadTimer;
             public bool reloading;
             public Vector2 recoilVelocity;

@@ -2,6 +2,7 @@ using System;
 using FishNet.Object;
 using FishNet.Object.Prediction;
 using FishNet.Transporting;
+using GameKit.Dependencies.Utilities;
 using Runtime.Utility;
 using Runtime.Weapons;
 using Runtime.World;
@@ -55,8 +56,6 @@ namespace Runtime.Player
         public GameObject[] thirdPersonOnly;
         public Renderer[] thirdPersonRenderers;
 
-        private Weapon currentWeapon;
-
         private InputAction moveAction;
         private InputAction jumpAction;
         private InputAction crouchAction;
@@ -67,6 +66,8 @@ namespace Runtime.Player
         private InputAction reloadAction;
         private InputAction weapon1Action;
         private InputAction weapon2Action;
+        
+        public PredictionRigidbody predictionBody;
 
         private Camera mainCamera;
         private HealthController health;
@@ -87,7 +88,7 @@ namespace Runtime.Player
         public Interactable currentInteractable { get; private set; }
         public Interactable lookingAt { get; private set; }
         public Vector2 rotation { get; set; }
-        public Weapon activeWeapon { get; set; }
+        public Weapon currentWeapon { get; private set; }
         public InputData tickInput { get; private set; }
         public Rigidbody body { get; private set; }
         public bool onGround { get; set; }
@@ -100,20 +101,25 @@ namespace Runtime.Player
         private void Awake()
         {
             mainCamera = Camera.main;
-
+            
             GetComponents();
             BindInputs();
 
             UnbindFirstPerson();
 
             registeredWeapons = GetComponentsInChildren<Weapon>();
-            foreach (var weapon in registeredWeapons)
-            {
-                weapon.gameObject.SetActive(false);
-            }
-
-            SwitchEquippedWeapons(0);
             isControlling = true;
+        }
+
+        private void OnEnable()
+        {
+            predictionBody = ObjectCaches<PredictionRigidbody>.Retrieve();
+            predictionBody.Initialize(body);
+        }
+
+        private void OnDisable()
+        {
+            ObjectCaches<PredictionRigidbody>.StoreAndDefault(ref predictionBody);
         }
 
         private void GetComponents()
@@ -156,6 +162,8 @@ namespace Runtime.Player
             {
                 landTime = Time.time;
             }
+            
+            ChangeWeapon(equippedWeapons[0]);
         }
 
         public override void OnStopNetwork()
@@ -261,12 +269,19 @@ namespace Runtime.Player
 
                 if (tickInput.weapon1.pressedThisTick) SwitchEquippedWeapons(0);
                 if (tickInput.weapon2.pressedThisTick) SwitchEquippedWeapons(1);
+
+                for (var i = 0; i < registeredWeapons.Length; i++)
+                {
+                    registeredWeapons[i].gameObject.SetActive(registeredWeapons[i] == currentWeapon);
+                }
             }
             else
             {
                 body.isKinematic = true;
                 isMoving = false;
             }
+            
+            predictionBody.Simulate();
         }
 
         private void Jump()
@@ -371,9 +386,7 @@ namespace Runtime.Player
         {
             var reconciliationData = new ReconciliationData
             {
-                position = body.position,
-                velocity = body.linearVelocity,
-                rotation = rotation,
+                predictionBody = predictionBody,
                 lastJumpTime = lastJumpTime,
                 onGround = onGround,
                 moveState = moveState,
@@ -384,9 +397,7 @@ namespace Runtime.Player
         [Reconcile]
         private void Reconcile(ReconciliationData data, Channel channel = Channel.Unreliable)
         {
-            body.position = data.position;
-            body.linearVelocity = data.velocity;
-            rotation = data.rotation;
+            predictionBody.Reconcile(data.predictionBody);
             lastJumpTime = data.lastJumpTime;
             onGround = data.onGround;
             moveState = data.moveState;
@@ -421,7 +432,7 @@ namespace Runtime.Player
 
             var headRotation = Quaternion.Euler(-finalRotation.y, finalRotation.x, 0f) * animationRotation;
 
-            head.position = transform.position + Vector3.up * (smoothedCameraHeight - cameraPivotDistance) + animationPosition + headRotation * Vector3.up * cameraPivotDistance;
+            head.localPosition = Vector3.up * (smoothedCameraHeight - cameraPivotDistance) + animationPosition + headRotation * Vector3.up * cameraPivotDistance;
             head.rotation = headRotation;
 
             if (isFirstPerson)
@@ -535,9 +546,7 @@ namespace Runtime.Player
 
         public void ChangeWeapon(Weapon weapon)
         {
-            if (currentWeapon) currentWeapon.gameObject.SetActive(false);
             currentWeapon = weapon;
-            if (currentWeapon) currentWeapon.gameObject.SetActive(true);
         }
 
         [Serializable]
@@ -588,9 +597,7 @@ namespace Runtime.Player
 
         public struct ReconciliationData : IReconcileData
         {
-            public Vector3 position;
-            public Vector3 velocity;
-            public Vector2 rotation;
+            public PredictionRigidbody predictionBody;
             public float lastJumpTime;
             public bool onGround;
             public MoveState moveState;

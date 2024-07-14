@@ -20,12 +20,12 @@ namespace Runtime.Player
         {
             if (player.currentInteractable)
             {
-                text.text = player.currentInteractable.getDisplayText();
+                text.text = player.currentInteractable.getDisplayText(player);
                 progress.fillAmount = player.currentInteractable.progress;
             }
             else if (player.lookingAt)
             {
-                text.text = player.lookingAt.getDisplayText();
+                text.text = player.lookingAt.getDisplayText(player);
                 progress.fillAmount = 0f;
             }
             else

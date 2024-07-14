@@ -83,13 +83,11 @@ MonoBehaviour:
     m_RotationOrder: 4
   magazineSize: 6
   reloadTime: 2.333333
-  ammoUsed: {fileID: 11400000, guid: 868dd64f6dac20f489748208b2755fca, type: 2}
   equipTime: 0.35
   aimFieldOfView: 60
-  recoilForce: {x: 0, y: 0}
-  recoilDecay: 0
+  recoilForce: {x: 20, y: 20}
+  recoilDecay: 15
   flash: {fileID: 3679659273843160340}
-  inventory: {fileID: 0}
 --- !u!1 &8499520423539322248
 GameObject:
   m_ObjectHideFlags: 0

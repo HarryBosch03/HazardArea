@@ -18,7 +18,7 @@ public class WeaponOverlay : MonoBehaviour
 
     private void Update()
     {
-        var weapon = fps.activeWeapon;
+        var weapon = fps.currentWeapon;
         if (weapon == null)
         {
             weaponName.text = string.Empty;

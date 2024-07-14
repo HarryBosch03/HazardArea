@@ -11,7 +11,8 @@ namespace Runtime.World
         private float counter;
 
         public FPSController interactor { get; private set; }
-        public Func<string> getDisplayText { get; set; }
+        public Func<FPSController, string> getDisplayText { get; set; }
+        public Func<FPSController, bool> canInteractCallback { get; set; }
         public float progress => counter / interactTime;
         
         public event Action<FPSController> InteractEvent;
@@ -20,13 +21,14 @@ namespace Runtime.World
 
         private void Awake()
         {
-            getDisplayText = () => name;
+            getDisplayText = _ => name;
         }
 
         public bool CanInteract(FPSController player)
         {
             if (blockInteraction) return false;
             if (interactor == null) return true;
+            if (canInteractCallback?.Invoke(player) == false) return false;
             else return interactor == player;
         }
 
