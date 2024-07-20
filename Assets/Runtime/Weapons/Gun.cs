@@ -96,12 +96,12 @@ namespace Runtime.Weapons
                 }
                 else
                 {
-                    if (player.tickInput.shoot.pressedThisTick || player.tickInput.shoot && !singleFire)
+                    if (player.input.shoot.pressedThisTick || player.input.shoot && !singleFire)
                     {
                         Shoot();
                     }
 
-                    if (player.tickInput.reload.pressedThisTick)
+                    if (player.input.reload.pressedThisTick)
                     {
                         Reload();
                     }
@@ -110,7 +110,7 @@ namespace Runtime.Weapons
                 data.recoilVelocity -= data.recoilVelocity * recoilDecay * TimeUtil.tickDelta;
                 player.rotation += data.recoilVelocity * TimeUtil.tickDelta;
 
-                var aiming = player.tickInput.aim && player.moveState != FPSController.MoveState.Sprint && player.onGround && !data.reloading;
+                var aiming = player.input.aim && player.moveState != FPSController.MoveState.Sprint && player.onGround && !data.reloading;
                 aimPercent = Mathf.MoveTowards(aimPercent, aiming ? 1f : 0f, (float)TimeManager.TickDelta / aimTime);
                 data.shootTimer -= Time.fixedDeltaTime;
             }
